@@ -16,5 +16,6 @@
 <br>https://tinkoffcreditsystems.github.io/invest-openapi/
 <br>Add token to config.py
 
+# under constraction, not works yet!
 * Run:
 <br>python test.py
