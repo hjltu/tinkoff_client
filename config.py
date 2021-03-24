@@ -21,14 +21,13 @@
 # SOFTWARE.
 
 
-# Tinkoff API token
+# Tinkoff API token, required for first time and stored in the db
 TOKEN = ''
-
+# should be added for the real trade account and stored in the db
+ACCOUNT_ID = ''
 MARKET = 'stocks'
-
 # Company ticker names
-TICKERS = (
-    'AAL','AAN','AES','MEI','NOK','OII','FSLR','LPL','CMCSA')
+TICKERS = ('NOK','VEON','ZYNE')
 
 class Style():
     HEADER = '\033[95m'

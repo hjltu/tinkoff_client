@@ -1,5 +1,7 @@
 # tinkoff_client
 
+# under constraction, not working yet!
+
 * Get tinkoff API token:
 <br>https://tinkoffcreditsystems.github.io/invest-openapi/
 
@@ -16,6 +18,5 @@
 <br>https://tinkoffcreditsystems.github.io/invest-openapi/
 <br>Add token to config.py
 
-# under constraction, not works yet!
 * Run:
 <br>python test.py

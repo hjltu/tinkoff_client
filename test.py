@@ -30,7 +30,7 @@ Usage:
 
 import sys, json
 from orders import Orders
-from config import TOKEN, MARKET, TICKERS
+from config import TOKEN, ACCOUNT_ID, MARKET, TICKERS
 
 
 # enable/disable Traceback
@@ -38,39 +38,45 @@ from config import TOKEN, MARKET, TICKERS
 
 
 def main():
-    #print('Initialize client...')
-    #client = Orders("test.db", TOKEN)
+    print('Initialize client...')
+    #client = Orders(TOKEN, ACCOUNT_ID, "test.db")
     client = Orders()
-    #print('done')
-    #print('* debug:', client.last_response.url)
+    print('done')
+    print('* debug:', client.last_response.url, '\n')
+
+    print('Get list of user accounts... ', end='')
+    accounts = client.get_user_accounts()
+    print('done', accounts)
+    print('* debug:', client.last_response.url, '\n')
+    return
 
     #print('Get stocks... ', end='')
     stocks = client.get_market()
     #print('done', type(stocks), dir(stocks))
     #print(stocks[0])
-    #print('* debug:', client.last_response.url)
+    #print('* debug:', client.last_response.url, '\n')
 
     #print('Get instruments... ', end='')
     stocks = client.get_instruments_by_tickers(TICKERS, stocks)
     #print('done', type(stocks), dir(stocks))
     #print(stocks[0])
-    #print('* debug:', client.last_response.url)
+    #print('* debug:', client.last_response.url, '\n')
 
     #print('Get prices... ', end='')
     stocks = client.get_candles(stocks, 3, "day")
     #print('done', stocks[0])
-    #print('* debug:', client.last_response.url)
+    #print('* debug:', client.last_response.url, '\n')
 
     print('Get operations... ', end='')
     stocks = client.get_operations(stocks)
     #print('done', stocks[0])
     #print('done', json.dumps(stocks[0], indent=4, default=str))
-    #print('* debug:', client.last_response.url)
+    #print('* debug:', client.last_response.url, '\n')
 
     #print('Get prices... ', end='')
     stocks = client.get_orders(stocks)
     print('done', stocks[0])
-    print('* debug:', client.last_response.url)
+    print('* debug:', client.last_response.url, '\n')
 
     #print('limit... ', end='')
     #stocks = client.place_limit_order("BBG000HLJ7M4", 1, "Buy",  10)

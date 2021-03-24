@@ -32,6 +32,9 @@ MSG_REQUEST = "Send Request. Response: {}"
 MSG_REQUEST_ERR = MSG_ERR + MSG_REQUEST
 MSG_CLIENT = "Client. Response: {} {}"
 MSG_CLIENT_ERR = MSG_ERR + MSG_CLIENT
+MSG_DB_WARN = "This value is not stored in the db yet"
+MSG_TOKEN = "Token is:"
+MSG_ACCOUNT_ID = "Account ID is:"
 MSG_MARKET = 'Market. Response: {} {}'
 MSG_MARKET_ERR = MSG_ERR + MSG_MARKET
 MSG_MARKET_LIST = 'is not in the market list: {}'
@@ -46,7 +49,7 @@ class Base(object):
     """ https://tinkoffcreditsystems.github.io/invest-openapi/ """
 
     def __init__(self,
-        db: str = "test.db", token: str = None, account_id: str = None, sandbox: bool = True):
+        token: str = None, account_id: str = None, db: str = "test.db", sandbox: bool = True):
 
         """ Create new client
         https://tinkoffcreditsystems.github.io/invest-openapi/auth/
@@ -68,19 +71,13 @@ class Base(object):
                 "payload":{"brokerAccountType":"Tinkoff","brokerAccountId":"SB2954177"},
                 "status":"Ok"} """
 
-        self.db = shelve.open(db)
+        # token and account id stored in db
+        self.db = db
+        self.token = self._add_to_db(token)
+        self.account_id = self._add_to_db(account_id)
 
-        if token:
-            self.token = token
-            self.db["token"] = token
-        else:
-            self.token = self.db.get("token")
-
-        if account_id:
-            self.account_id = account_id
-            self.db["account_id"] = account_id
-        else:
-            self.account_id = self.db.get("account_id")
+        if not self.token:
+            raise Exception(MSG_CLIENT_ERR.format(MSG_TOKEN, self.token))
 
         self.last_response = None
         self.api_url = "https://api-invest.tinkoff.ru/openapi"
@@ -102,8 +99,10 @@ class Base(object):
                 msg = json.loads(res).get('payload').get('message')
                 raise Exception(MSG_CLIENT_ERR.format(code, msg))
 
-        else:
-            url = self.api_url + "/register"
+        print(MSG_CLIENT.format(MSG_ACCOUNT_ID, self.account_id))
+
+        #else:
+        #    url = self.api_url + "/register"
 
         # for sandbox: 
         #clear all orders
@@ -146,9 +145,12 @@ class Base(object):
         return res
 
 
-    def get_user_accounts() -> list:
+    def get_user_accounts(self) -> list:
 
-        """ Get list of user accounts """
+        """ Get list of user accounts
+        Output: list, [{
+            "brokerAccountType": "Tinkoff",
+            "brokerAccountId": "string" }] """
 
         url = self.api_url + "/user/accounts"
 
@@ -161,13 +163,29 @@ class Base(object):
             raise Exception(MSG_CLIENT_ERR.format(code, msg))
 
 
+    def _add_to_db(self, new):
+
+        """ Add new value to persistent data storage,
+            new value stored in db as dict { "value's name" : value }
+        Input: new value
+        Output: new value or None """
+
+        new_key = [ k for k,v in locals().items() if v == new][0]
+        with shelve.open(self.db) as db:
+            if new:
+                db[new_key] = new
+            new = db.get(new_key)
+
+        return new if new else None
+
+
 class Market(Base):
 
 
     def __init__(self,
-        db: str = "test.db", token: str = None, account_id: str = None, sandbox: bool = True):
+        token: str = None, account_id: str = None, db: str = "test.db", sandbox: bool = True):
 
-        super().__init__(db, token, account_id, sandbox)
+        super().__init__(token, account_id, db, sandbox)
         self.markets = ("stocks", "etfs", "bonds", "currencies")
 
 
