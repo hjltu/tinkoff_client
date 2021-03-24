@@ -35,9 +35,9 @@ MSG_OPERATIONS_ERR = MSG_ERR + MSG_OPERATIONS
 class Operations(Market):
 
     def __init__(self,
-        token: str = None, account_id: str = None, db: str = "test.db", sandbox: bool = True):
+        db: str = "test.db", token: str = None, account_id: str = None, sandbox: bool = True):
 
-        super().__init__(token, account_id, db, sandbox)
+        super().__init__(db, token, account_id, sandbox)
 
 
     def get_operations(self,
@@ -104,9 +104,9 @@ class Operations(Market):
 class Orders(Operations):
 
     def __init__(self,
-        token: str = None, account_id: str = None, db: str = "test.db", sandbox: bool = True):
+        db: str = "test.db", token: str = None, account_id: str = None, sandbox: bool = True):
 
-        super().__init__(token, account_id, db, sandbox)
+        super().__init__(db, token, account_id, sandbox)
 
 
     def get_orders(self, instruments: list):

@@ -49,7 +49,7 @@ class Base(object):
     """ https://tinkoffcreditsystems.github.io/invest-openapi/ """
 
     def __init__(self,
-        token: str = None, account_id: str = None, db: str = "test.db", sandbox: bool = True):
+        db: str = "test.db", token: str = None, account_id: str = None, sandbox: bool = True):
 
         """ Create new client
         https://tinkoffcreditsystems.github.io/invest-openapi/auth/
@@ -73,8 +73,8 @@ class Base(object):
 
         # token and account id stored in db
         self.db = db
-        self.token = self._add_to_db(token)
-        self.account_id = self._add_to_db(account_id)
+        self.token = self._add_to_db("token", token)
+        self.account_id = self._add_to_db("account_id", account_id)
 
         if not self.token:
             raise Exception(MSG_CLIENT_ERR.format(MSG_TOKEN, self.token))
@@ -163,29 +163,38 @@ class Base(object):
             raise Exception(MSG_CLIENT_ERR.format(code, msg))
 
 
-    def _add_to_db(self, new):
+    def _add_to_db(self, key, val=None):
 
         """ Add new value to persistent data storage,
-            new value stored in db as dict { "value's name" : value }
-        Input: new value
+            new value stored in db as dict { key : val }
+        Input:
+            key: str, new key,
+            val:new value
         Output: new value or None """
 
-        new_key = [ k for k,v in locals().items() if v == new][0]
         with shelve.open(self.db) as db:
-            if new:
-                db[new_key] = new
-            new = db.get(new_key)
+            if val:
+                db[key] = val
+            val = db.get(key)
 
-        return new if new else None
+        return val if val else None
+
+
+    def _get_from_db(self, val):
+
+        """ Get value or all values from db """
+
+        with shelve.open(self.db) as db:
+            return db.get(val)
 
 
 class Market(Base):
 
 
     def __init__(self,
-        token: str = None, account_id: str = None, db: str = "test.db", sandbox: bool = True):
+        db: str = "test.db", token: str = None, account_id: str = None, sandbox: bool = True):
 
-        super().__init__(token, account_id, db, sandbox)
+        super().__init__(db, token, account_id, sandbox)
         self.markets = ("stocks", "etfs", "bonds", "currencies")
 
 
@@ -248,13 +257,13 @@ class Market(Base):
 
 
     def get_candles(self,
-        instruments: list, depth: int = 1, interval: str = 'day') -> list:
+        instruments: list, depth: int = 30, interval: str = 'month') -> list:
 
         """ Add candles to list of instruments
             time = 2019-08-19T18:38:33.131642+03:00
         Input:
             instrument: list of my instruments,
-            depth: int, days = 1,
+            depth: int, days = 1, e.g if interval = weeks then days should be = 7, 30 for month,
             interval: str, candles interval = 2min, 3min, 5min, 10min, 15min, 30min, hour, day, week, month
         Output: instruments: list = [{
                 "figi": "BBG000HLJ7M4",
@@ -278,11 +287,11 @@ class Market(Base):
         url = self.api_url + "/market/candles"
         _from = (datetime.utcnow() - timedelta(days=depth)).isoformat() + '+00:00'
         to = datetime.utcnow().isoformat() + '+00:00'
-        #params = {"from": _from, "to": to, "interval": interval}
+        params = {"from": _from, "to": to, "interval": interval}
 
         for instrument in instruments:
-            params = {"figi": instrument['figi']}
-            params.update({"from": _from, "to": to, "interval": interval})
+            params.update({"figi": instrument['figi']})
+            #params.update({"from": _from, "to": to, "interval": interval})
             code, res = self._send_request(url, params=params)
 
             if code == 200:

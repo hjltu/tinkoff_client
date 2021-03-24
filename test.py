@@ -39,22 +39,29 @@ from config import TOKEN, ACCOUNT_ID, MARKET, TICKERS
 
 def main():
     print('Initialize client...')
-    #client = Orders(TOKEN, ACCOUNT_ID, "test.db")
+    #client = Orders(db="test.db", token=TOKEN, account_id=ACCOUNT_ID)
     client = Orders()
     print('done')
     print('* debug:', client.last_response.url, '\n')
 
+    #if token:
+    #    name = [ k for k,v in locals().items() if v == token][0]
+    #    print("get token:", client._get_from_db(name))
+    print("get token:", client._get_from_db("token"))
+    print("get account_id:", client._get_from_db("account_id"))
+
     print('Get list of user accounts... ', end='')
     accounts = client.get_user_accounts()
-    print('done', accounts)
+    print('done\n', accounts)
+    for acc in accounts:
+        print('done\nAccount ID:', acc.get('brokerAccountId'))
     print('* debug:', client.last_response.url, '\n')
-    return
 
-    #print('Get stocks... ', end='')
+    print('Get stocks... ', end='')
     stocks = client.get_market()
-    #print('done', type(stocks), dir(stocks))
-    #print(stocks[0])
-    #print('* debug:', client.last_response.url, '\n')
+    print('done', type(stocks), dir(stocks))
+    print(stocks[0])
+    print('* debug:', client.last_response.url, '\n')
 
     #print('Get instruments... ', end='')
     stocks = client.get_instruments_by_tickers(TICKERS, stocks)
@@ -62,10 +69,11 @@ def main():
     #print(stocks[0])
     #print('* debug:', client.last_response.url, '\n')
 
-    #print('Get prices... ', end='')
-    stocks = client.get_candles(stocks, 3, "day")
-    #print('done', stocks[0])
-    #print('* debug:', client.last_response.url, '\n')
+    print('Get candles... ', end='')
+    stocks = client.get_candles(stocks, 14, "week")
+    print('done', stocks[0])
+    print('* debug:', client.last_response.url, '\n')
+    return
 
     print('Get operations... ', end='')
     stocks = client.get_operations(stocks)
