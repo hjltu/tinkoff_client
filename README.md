@@ -1,7 +1,5 @@
 # tinkoff_client
 
-# under constraction, not working yet!
-
 * Get tinkoff API token:
 <br>https://tinkoffcreditsystems.github.io/invest-openapi/
 

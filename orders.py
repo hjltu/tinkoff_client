@@ -28,7 +28,7 @@ from itertools import zip_longest as zip
 
 
 MSG_ERR = "Error! "
-MSG_OPERATIONS = 'Market. Response: {} {}'
+MSG_OPERATIONS = 'Operations. Response: {} {}'
 MSG_OPERATIONS_ERR = MSG_ERR + MSG_OPERATIONS
 
 
@@ -41,14 +41,17 @@ class Operations(Market):
 
 
     def get_operations(self,
-        instruments: list, depth: int = 365,
-        figi:str = None, account_is: str = None, for_all_instruments: bool = False):
+        depth: int = 365,
+        instruments: list = None,
+        figi:str = None,
+        account_id: str = None):
 
-        """ Get list of operations. Does not work!
+        """ Add operations to the list instruments or get all operations in one request
             Input:
                 instruments: list of instruments,
                 depth: days from today,
-                for_all: bool, for all instruments in one request
+                figi: str, not implemented yet! The definition of this argument has is irrelevant,
+                account_id: str, optional
             Output:
                 instruments
             Not required parameters:
@@ -61,33 +64,39 @@ class Operations(Market):
         _from = (datetime.utcnow() - timedelta(days=depth)).isoformat() + '+03:00'
         to = datetime.utcnow().isoformat() + '+03:00'
         params = {"from": _from, "to": to}
+        if account_id:
+            params.update({"brokerAccountId": account_id})
 
-        if for_all_instruments:
+        if not instruments:
             code, res = self._send_request(url, params=params)
 
             if code == 200:
-                return json.loads(res)['payload']['operations']
+                return json.loads(res).get('payload').get('operations')
             else:
-                msg = json.loads(res)['payload']['message']
+                msg = json.loads(res).get('payload').get('message')
                 raise Exception(MSG_OPERATIONS_ERR.format(code, msg))
+
+        # TODO
+        if figi:
+            pass
 
         for instrument in instruments:
             params.update({"figi": instrument['figi']})
             code, res = self._send_request(url, params=params)
 
             if code == 200:
-                instrument['operations'] = json.loads(res)['payload']['operations']
+                instrument['operations'] = json.loads(res).get('payload').get('operations')
             else:
-                msg = json.loads(res)['payload']['message']
+                msg = json.loads(res).get('payload').get('message')
                 print(MSG_OPERATIONS_ERR.format(code, msg))
                 instrument['operations'] = None
 
         return instruments
 
 
-    def get_portfolio(self, account_id: str = None):
+    def get_portfolio(self, account_id: str = None) -> list:
 
-        """ Get client's portfolio """
+        """ Get client's portfolio, list of dict of the opened positions """
 
         url = self.api_url + "/portfolio"
         params = {"brokerAccountId": account_id} if account_id else None

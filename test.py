@@ -39,8 +39,12 @@ from config import TOKEN, ACCOUNT_ID, MARKET, TICKERS
 
 def main():
     print('Initialize client...')
-    #client = Orders(db="test.db", token=TOKEN, account_id=ACCOUNT_ID)
-    client = Orders()
+    # First time run, will save token in the db
+    if TOKEN:
+        client = Orders(db="test.db", token=TOKEN, account_id=ACCOUNT_ID)
+    # if token is already saved in the db
+    else:
+        client = Orders()
     print('done')
     print('* debug:', client.last_response.url, '\n')
 
@@ -65,22 +69,24 @@ def main():
 
     #print('Get instruments... ', end='')
     stocks = client.get_instruments_by_tickers(TICKERS, stocks)
-    #print('done', type(stocks), dir(stocks))
-    #print(stocks[0])
-    #print('* debug:', client.last_response.url, '\n')
+    print('done', json.dumps(stocks[0], indent=4, default=str))
+    print('* debug:', client.last_response.url, '\n')
 
     print('Get candles... ', end='')
     stocks = client.get_candles(stocks, 14, "week")
     print('done', stocks[0])
     print('* debug:', client.last_response.url, '\n')
-    return
 
     print('Get operations... ', end='')
-    stocks = client.get_operations(stocks)
-    #print('done', stocks[0])
-    #print('done', json.dumps(stocks[0], indent=4, default=str))
-    #print('* debug:', client.last_response.url, '\n')
+    stocks = client.get_operations(99, stocks)
+    print('done', stocks[0])
+    print('* debug:', client.last_response.url, '\n')
 
+    print('Get portfolio... ', end='')
+    pos = client.get_portfolio()
+    print('done', pos[0]) if len(pos)>0 else print('done positions list len:', len(pos))
+    print('* debug:', client.last_response.url, '\n')
+    return
     #print('Get prices... ', end='')
     stocks = client.get_orders(stocks)
     print('done', stocks[0])
