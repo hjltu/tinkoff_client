@@ -93,8 +93,12 @@ class Base(object):
             # new clients
             res = self._send_request(url, params=None, payload=payload)
 
+            if isinstance(res, dict):
+                self.account_id = res.get('payload').get('brokerAccountId')
+            else:
+                raise Exception(MSG_CLIENT_ERR.format(MSG_ACCOUNT_ID, self.account_id))
+
             print(MSG_CLIENT.format(MSG_SANDBOX))
-            self.account_id = json.loads(res).get('payload').get('brokerAccountId')
 
         print(MSG_CLIENT.format(MSG_ACCOUNT_ID.format(self.account_id)))
 
@@ -103,7 +107,7 @@ class Base(object):
         url: str,
         params: dict = None,
         payload: dict = None,
-        timeout: int = 11) -> str:
+        timeout: int = 11):
 
         """ Send POST request
             Input:
@@ -113,12 +117,8 @@ class Base(object):
                 timeout: int, seconds, optional,
             Output:
                 status: int,
-                res: str
-            How to converddt output(res.text) to dict:
-                res['payload']['total'],
-                res['payload']['instruments'],
-                res['status'])
-            response:
+                res: list/dict/str, expected type dict, str with an error message
+            dir request response:
                 ['apparent_encoding', 'close', 'connection', 'content', 'cookies',
                 'elapsed', 'encoding', 'headers', 'history', 'is_permanent_redirect',
                 'is_redirect', 'iter_content', 'iter_lines', 'json', 'links',
@@ -134,19 +134,18 @@ class Base(object):
             else:
                 self.last_response = requests.get(url, headers=self.headers, params=params, timeout=timeout)
 
-            code, res = self.last_response.status_code, self.last_response.text
-
+            code, res = self.last_response.status_code, json.loads(self.last_response.text)
         except Exception as e:
-            raise Exception(MSG_REQUEST_ERR.format(code, e))
+            return MSG_REQUEST_ERR.format(code, e)
 
         if code != 200:
-            msg = json.loads(res).get('payload').get('message')
-            raise Exception(MSG_REQUEST_ERR.format(code, msg))
+            msg = res.get('payload').get('message')
+            return MSG_REQUEST_ERR.format(code, msg)
 
         return res
 
 
-    def get_user_accounts(self) -> list:
+    def get_user_accounts(self):
 
         """ Get list of user accounts
         Output: list, [{
@@ -157,7 +156,7 @@ class Base(object):
 
         res = self._send_request(url)
 
-        return json.loads(res).get('payload').get('accounts')
+        return res.get('payload').get('accounts') if isinstance(res, dict) else res
 
 
     def _add_to_db(self, key, val=None):
@@ -212,12 +211,12 @@ class Market(Base):
         if market in self.markets:
             url = self.api_url + "/market/" + market
         else:
-            raise Exception(MSG_MARKET_ERR.format(
-                MSG_MARKET_LIST.format(market, self.markets)))
+            return MSG_MARKET_ERR.format(
+                MSG_MARKET_LIST.format(market, self.markets))
 
         res = self._send_request(url)
 
-        return json.loads(res).get('payload').get('instruments')
+        return res.get('payload').get('instruments') if isinstance(res, dict) else res
 
 
     def get_instruments_by_tickers(self, tickers: tuple, all_instruments: list) -> list:
@@ -247,7 +246,7 @@ class Market(Base):
 
 
     def get_candles(self,
-        instruments: list, depth: int = 30, interval: str = 'month') -> list:
+        instruments: list, depth: int = 30, interval: str = 'month'):
 
         """ Add candles to list of instruments
             time = 2019-08-19T18:38:33.131642+03:00
@@ -284,7 +283,8 @@ class Market(Base):
             #params.update({"from": _from, "to": to, "interval": interval})
             res = self._send_request(url, params=params)
 
-            instrument['candles'] = json.loads(res).get('payload').get('candles')
+            instrument['candles'] = (
+                res.get('payload').get('candles') if isinstance(res, dict)  else res)
 
         return instruments
 

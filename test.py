@@ -36,7 +36,16 @@ from config import TOKEN, ACCOUNT_ID, MARKET, TICKERS, Style
 # enable/disable Traceback
 sys.tracebacklimit = 0
 
+def handle_error(func):
+    def inner(*args, **kwargs):
+        res = None
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            print(e)
+    return inner
 
+@handle_error
 def main():
     print('Initialize client...')
     # First time run, will save token in the db
@@ -59,7 +68,12 @@ def main():
     print('* debug:', client.last_response.url, '\n')
 
     print('Get stocks... ', end='', flush=True)
+    stocks = client.get_market('test')
+    if not isinstance(stocks, list):
+        print(stocks)
     stocks = client.get_market()
+    if not isinstance(stocks, list):
+        return print(stocks)
     print('done', type(stocks), dir(stocks))
     print(stocks[0])
     print('* debug:', client.last_response.url, '\n')
@@ -96,6 +110,8 @@ def main():
     print('Cancel order... ', end='', flush=True)
     order = client.cancel_order(order.get('orderId'))
     print('done', order)
+
+
 
 if __name__=="__main__":
     #arg=sys.argv[1:]

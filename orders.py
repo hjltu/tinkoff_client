@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import json
+
 from market import Market
 from datetime import datetime, timedelta
 from itertools import zip_longest as zip
@@ -54,12 +54,7 @@ class Operations(Market):
                 figi: str, not implemented yet! The definition of this argument has is irrelevant,
                 account_id: str, optional
             Output:
-                instruments
-            Not required parameters:
-                figi: str,
-                brokerAccountId: str = self.account_id
-            response:
-                {"trackingId":"246c007a49a6e1d1","payload":{"operations":[]},"status":"Ok"} """
+                list or error message string """
 
         url = self.api_url + "/operations"
         _from = (datetime.utcnow() - timedelta(days=depth)).isoformat() + '+03:00'
@@ -71,7 +66,7 @@ class Operations(Market):
         if not instruments:
             res = self._send_request(url, params=params)
 
-            return json.loads(res).get('payload').get('operations')
+            return res.get('payload').get('operations') if isinstance(res, dict) else res
 
         # TODO
         if figi:
@@ -81,22 +76,24 @@ class Operations(Market):
             params.update({"figi": instrument['figi']})
             res = self._send_request(url, params=params)
 
-            instrument['operations'] = json.loads(res).get('payload').get('operations')
+            instrument['operations'] = (
+                res.get('payload').get('operations') if isinstance(res, dict) else res)
 
         return instruments
 
 
-    def get_portfolio(self, account_id: str = None) -> list:
+    def get_portfolio(self, account_id: str = None):
 
         """ Get client's portfolio,
-        Output: list of dict of the opened positions """
+        Output: list of dict of the opened positions
+            or error message string """
 
         url = self.api_url + "/portfolio"
         params = {"brokerAccountId": account_id} if account_id else None
 
         res = self._send_request(url, params=params)
 
-        return json.loads(res).get('payload').get('positions')
+        return res.get('payload').get('positions') if isinstance(res, dict) else res
 
 
 class Orders(Operations):
@@ -114,14 +111,20 @@ class Orders(Operations):
             instruments: list, optional,
             account_id: str, optional
         Output:
-            instruments['orders'] or list of dict of the opened positions """
+            expected result: list,
+                instruments['orders'] list or list of dict of the opened positions
+            or error message string """
 
         url = self.api_url + "/orders"
         params = {"brokerAccountId": account_id} if account_id else None
 
         res = self._send_request(url)
 
-        orders_list = json.loads(res).get('payload')
+        if isinstance(res, str):
+            return res
+
+        orders_list = res.get('payload')
+
         if instruments:
             for instrument in instruments:
                 instrument['orders'] = []
@@ -138,21 +141,22 @@ class Orders(Operations):
         lots: int,
         op: str,
         price: float,
-        account_id: str = None) -> dict:
+        account_id: str = None):
 
         """ Place limit order
-        limit_order_request: {
+        Input:
             "figi:, str,
             "lots": int,
             "op": str, "Buy" or "Sell",
             "price": float, for limit orders, optional
             account_id: str, optional
-        } """
+        Output:
+            expected type dict, str with an error message """
 
         ops = ("Buy", "Sell")
         if op not in ops:
             msg = MSG_PLACE_ORDER.format(ops, op)
-            raise Exception(MSG_ORDERS_ERR.format(msg))
+            return MSG_ORDERS_ERR.format(msg)
 
         url = self.api_url + "/orders/market-order"
         params = {"figi": figi}
@@ -165,17 +169,17 @@ class Orders(Operations):
             payload.update({"price": price})
         res = self._send_request(url, params=params, payload=payload)
 
-        return json.loads(res).get('payload')
+        return res.get('payload') if isinstance(res, dict) else res
 
 
-    def cancel_order(self, order_id: str, account_id: str = None) -> dict:
+    def cancel_order(self, order_id: str, account_id: str = None):
 
         """ Cancel order
         Input:
             order_id: str,
             account_id: str, optional
         Output:
-            str, status message """
+            expected type dict, str with an error message """
 
         url = self.api_url + "/orders/cancel"
         params = {"orderId": order_id}
@@ -184,7 +188,7 @@ class Orders(Operations):
 
         res = self._send_request(url, params=params)
 
-        return json.loads(res).get('payload')
+        return res.get('payload') if isinstance(res, dict) else res
 
 
 
