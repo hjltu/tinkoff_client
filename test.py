@@ -30,11 +30,11 @@ Usage:
 
 import sys, json
 from orders import Orders
-from config import TOKEN, ACCOUNT_ID, MARKET, TICKERS
+from config import TOKEN, ACCOUNT_ID, MARKET, TICKERS, Style
 
 
 # enable/disable Traceback
-# sys.tracebacklimit = 0
+sys.tracebacklimit = 0
 
 
 def main():
@@ -45,56 +45,57 @@ def main():
     # if token is already saved in the db
     else:
         client = Orders()
-    print('done')
+    print(Style.BOLD + Style.GREEN + 'done' + Style.RESET)
     print('* debug:', client.last_response.url, '\n')
 
-    #if token:
-    #    name = [ k for k,v in locals().items() if v == token][0]
-    #    print("get token:", client._get_from_db(name))
     print("get token:", client._get_from_db("token"))
     print("get account_id:", client._get_from_db("account_id"))
 
-    print('Get list of user accounts... ', end='')
+    print('Get list of user accounts... ', end='', flush=True)
     accounts = client.get_user_accounts()
     print('done\n', accounts)
     for acc in accounts:
         print('done\nAccount ID:', acc.get('brokerAccountId'))
     print('* debug:', client.last_response.url, '\n')
 
-    print('Get stocks... ', end='')
+    print('Get stocks... ', end='', flush=True)
     stocks = client.get_market()
     print('done', type(stocks), dir(stocks))
     print(stocks[0])
     print('* debug:', client.last_response.url, '\n')
 
-    #print('Get instruments... ', end='')
+    print('Get instruments... ', end='', flush=True)
     stocks = client.get_instruments_by_tickers(TICKERS, stocks)
     print('done', json.dumps(stocks[0], indent=4, default=str))
     print('* debug:', client.last_response.url, '\n')
 
-    print('Get candles... ', end='')
+    print('Get candles... ', end='', flush=True)
     stocks = client.get_candles(stocks, 14, "week")
     print('done', stocks[0])
     print('* debug:', client.last_response.url, '\n')
 
-    print('Get operations... ', end='')
+    print('Get operations... ', end='', flush=True)
     stocks = client.get_operations(99, stocks)
     print('done', stocks[0])
     print('* debug:', client.last_response.url, '\n')
 
-    print('Get portfolio... ', end='')
+    print('Get portfolio... ', end='', flush=True)
     pos = client.get_portfolio()
     print('done', pos[0]) if len(pos)>0 else print('done positions list len:', len(pos))
     print('* debug:', client.last_response.url, '\n')
-    return
-    #print('Get prices... ', end='')
+
+    print('Get orders... ', end='', flush=True)
     stocks = client.get_orders(stocks)
     print('done', stocks[0])
     print('* debug:', client.last_response.url, '\n')
 
-    #print('limit... ', end='')
-    #stocks = client.place_limit_order("BBG000HLJ7M4", 1, "Buy",  10)
-    #print('done', json.dumps(stocks[0], indent=4, default=str))
+    print('Place order... ', end='', flush=True)
+    order = client.place_order("BBG000HLJ7M4", 1, "Buy",  10)
+    print('done', order)
+
+    print('Cancel order... ', end='', flush=True)
+    order = client.cancel_order(order.get('orderId'))
+    print('done', order)
 
 if __name__=="__main__":
     #arg=sys.argv[1:]

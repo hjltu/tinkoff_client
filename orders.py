@@ -22,15 +22,16 @@
 
 import json
 from market import Market
-from config import Style
 from datetime import datetime, timedelta
 from itertools import zip_longest as zip
 
 
 MSG_ERR = "Error! "
-MSG_OPERATIONS = 'Operations. Response: {} {}'
+MSG_OPERATIONS = 'Operations. Response: {}'
 MSG_OPERATIONS_ERR = MSG_ERR + MSG_OPERATIONS
-
+MSG_ORDERS = 'Operations. Response: {}'
+MSG_ORDERS_ERR = MSG_ERR + MSG_OPERATIONS
+MSG_PLACE_ORDER = "Operation should be {} instead of {}"
 
 class Operations(Market):
 
@@ -68,13 +69,9 @@ class Operations(Market):
             params.update({"brokerAccountId": account_id})
 
         if not instruments:
-            code, res = self._send_request(url, params=params)
+            res = self._send_request(url, params=params)
 
-            if code == 200:
-                return json.loads(res).get('payload').get('operations')
-            else:
-                msg = json.loads(res).get('payload').get('message')
-                raise Exception(MSG_OPERATIONS_ERR.format(code, msg))
+            return json.loads(res).get('payload').get('operations')
 
         # TODO
         if figi:
@@ -82,32 +79,24 @@ class Operations(Market):
 
         for instrument in instruments:
             params.update({"figi": instrument['figi']})
-            code, res = self._send_request(url, params=params)
+            res = self._send_request(url, params=params)
 
-            if code == 200:
-                instrument['operations'] = json.loads(res).get('payload').get('operations')
-            else:
-                msg = json.loads(res).get('payload').get('message')
-                print(MSG_OPERATIONS_ERR.format(code, msg))
-                instrument['operations'] = None
+            instrument['operations'] = json.loads(res).get('payload').get('operations')
 
         return instruments
 
 
     def get_portfolio(self, account_id: str = None) -> list:
 
-        """ Get client's portfolio, list of dict of the opened positions """
+        """ Get client's portfolio,
+        Output: list of dict of the opened positions """
 
         url = self.api_url + "/portfolio"
         params = {"brokerAccountId": account_id} if account_id else None
 
-        code, res = self._send_request(url, params=params)
+        res = self._send_request(url, params=params)
 
-        if code == 200:
-            return json.loads(res).get('payload').get('positions')
-        else:
-            msg = json.loads(res).get('payload').get('message')
-            raise Exception(MSG_OPERATIONS_ERR.format(code, msg))
+        return json.loads(res).get('payload').get('positions')
 
 
 class Orders(Operations):
@@ -118,48 +107,84 @@ class Orders(Operations):
         super().__init__(db, token, account_id, sandbox)
 
 
-    def get_orders(self, instruments: list):
+    def get_orders(self, instruments: list = None, account_id: str = None):
 
-        """ Add active orders to list of instruments """
+        """ Add active orders to list of instruments
+        Input:
+            instruments: list, optional,
+            account_id: str, optional
+        Output:
+            instruments['orders'] or list of dict of the opened positions """
 
         url = self.api_url + "/orders"
-        code, res = self._send_request(url)
+        params = {"brokerAccountId": account_id} if account_id else None
 
-        if code == 200:
-            orders_list = json.loads(res)['payload']
+        res = self._send_request(url)
+
+        orders_list = json.loads(res).get('payload')
+        if instruments:
             for instrument in instruments:
                 instrument['orders'] = []
                 for order in orders_list:
-                    if instrument['figi'] == order['figi']:
+                    if instrument.get('figi') == order.get('figi'):
                         instrument['orders'] = order
-        else:
-            msg = json.loads(res)['payload']['message']
-            raise Exception(MSG_OPERATIONS_ERR.format(code, msg))
 
-        return instruments
+            return instruments
+        return orders_list
 
 
-    def place_limit_order(self, figi, lots, op, price):
+    def place_order(self,
+        figi: str,
+        lots: int,
+        op: str,
+        price: float,
+        account_id: str = None) -> dict:
 
         """ Place limit order
         limit_order_request: {
-            "lots": 0,
-            "operation": "Buy",
-            "price": 0
+            "figi:, str,
+            "lots": int,
+            "op": str, "Buy" or "Sell",
+            "price": float, for limit orders, optional
+            account_id: str, optional
         } """
 
-        #res = client.orders.orders_limit_order_post(figi, limit_order_request)
-        limit_request = '{"lots": '+str(lots)+', "operation": '+op+', "price": '+str(price)+'}'
-        res = self.client.orders.orders_limit_order_post(figi, json.dumps(limit_request))
-        #res = self.client.orders.orders_limit_order_post(figi, (lots, op, price))
+        ops = ("Buy", "Sell")
+        if op not in ops:
+            msg = MSG_PLACE_ORDER.format(ops, op)
+            raise Exception(MSG_ORDERS_ERR.format(msg))
+
+        url = self.api_url + "/orders/market-order"
+        params = {"figi": figi}
+        #params.update{"brokerAccountId": account_id}) if account_id else None
+        if account_id:
+            params.update({"brokerAccountId": account_id})
+        payload = {"lots": lots, "operation": op}
+        if price:
+            url = self.api_url + "/orders/limit-order"
+            payload.update({"price": price})
+        res = self._send_request(url, params=params, payload=payload)
+
+        return json.loads(res).get('payload')
 
 
-    def place_market_order(self):
+    def cancel_order(self, order_id: str, account_id: str = None) -> dict:
 
-        """ Place market order """
+        """ Cancel order
+        Input:
+            order_id: str,
+            account_id: str, optional
+        Output:
+            str, status message """
 
-        res = client.orders.orders_market_order_post(figi, market_order_request)
+        url = self.api_url + "/orders/cancel"
+        params = {"orderId": order_id}
+        if account_id:
+            params.update({"brokerAccountId": account_id})
 
+        res = self._send_request(url, params=params)
+
+        return json.loads(res).get('payload')
 
 
 

@@ -4,7 +4,7 @@
 <br>https://tinkoffcreditsystems.github.io/invest-openapi/
 
 * Install:
-<br>git clone git@github.com:hjltu/tinkoff_client.git
+<br>git clone https://github.com/hjltu/tinkoff_client.git
 <br>cd tinkoff_client
 <br>python3 -m venv venv
 <br>source venv/bin/activate
@@ -14,7 +14,7 @@
 
 * Get tinkoff API token:
 <br>https://tinkoffcreditsystems.github.io/invest-openapi/
-<br>Add token to config.py
+<br>Add token to the file config.py
 
 * Run:
 <br>python test.py

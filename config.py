@@ -23,7 +23,7 @@
 
 # Tinkoff API token, required for first time and stored in the db
 TOKEN = ''
-# should be added for the real trade account and stored in the db
+# can be added for the real trade account and stored in the db
 ACCOUNT_ID = ''
 MARKET = 'stocks'
 # Company ticker names

@@ -28,16 +28,17 @@ from datetime import datetime, timedelta
 
 
 MSG_ERR = "Error! "
-MSG_REQUEST = "Send Request. Response: {}"
+MSG_REQUEST = "Send Request. Response: {} {}"
 MSG_REQUEST_ERR = MSG_ERR + MSG_REQUEST
-MSG_CLIENT = "Client. Response: {} {}"
+MSG_CLIENT = "Client. Response: {}"
 MSG_CLIENT_ERR = MSG_ERR + MSG_CLIENT
+MSG_SANDBOX = "New sandbox client is created"
 MSG_DB_WARN = "This value is not stored in the db yet"
 MSG_TOKEN = "Token is:"
-MSG_ACCOUNT_ID = "Account ID is:"
-MSG_MARKET = 'Market. Response: {} {}'
+MSG_ACCOUNT_ID = "Account ID is {}:"
+MSG_MARKET = 'Market. Response: {}'
 MSG_MARKET_ERR = MSG_ERR + MSG_MARKET
-MSG_MARKET_LIST = 'is not in the market list: {}'
+MSG_MARKET_LIST = ' {} is not in the market list: {}'
 MSG_POST = 'Send POST: {}'
 STOCKS = 'stocks'
 ETFS = 'etfs'
@@ -90,33 +91,26 @@ class Base(object):
             payload = { "brokerAccountType": "Tinkoff" }
 
             # new clients
-            code, res = self._send_request(url, params=None, payload=payload)
+            res = self._send_request(url, params=None, payload=payload)
 
-            if code == 200:
-                print(MSG_CLIENT.format(code, "Ok"))
-                self.account_id = json.loads(res).get('payload').get('brokerAccountId')
-            else:
-                msg = json.loads(res).get('payload').get('message')
-                raise Exception(MSG_CLIENT_ERR.format(code, msg))
+            print(MSG_CLIENT.format(MSG_SANDBOX))
+            self.account_id = json.loads(res).get('payload').get('brokerAccountId')
 
-        print(MSG_CLIENT.format(MSG_ACCOUNT_ID, self.account_id))
-
-        #else:
-        #    url = self.api_url + "/register"
-
-        # for sandbox: 
-        #clear all orders
-        #self.client.sandbox.sandbox_clear_post()
-        # remove balance
-        #self.client.sandbox.sandbox_remove_post()
+        print(MSG_CLIENT.format(MSG_ACCOUNT_ID.format(self.account_id)))
 
 
-    def _send_request(self, url: str, params: dict = None, payload: dict = None):
+    def _send_request(self,
+        url: str,
+        params: dict = None,
+        payload: dict = None,
+        timeout: int = 11) -> str:
 
         """ Send POST request
             Input:
                 url: str,
-                payload: dict
+                params: dict,
+                payload: dict,
+                timeout: int, seconds, optional,
             Output:
                 status: int,
                 res: str
@@ -131,16 +125,23 @@ class Base(object):
                 'next', 'ok', 'raise_for_status', 'raw', 'reason', 'request',
                 'status_code', 'text', 'url'] """
 
-        if payload:
-            data = json.dumps(payload)  # to json
-            self.last_response = requests.post(url, data=data, headers=self.headers, params=params)
-        else:
-            self.last_response = requests.get(url, headers=self.headers, params=params)
+        code, res, msg = None, None, None
 
         try:
-            res = (self.last_response.status_code, self.last_response.text)
+            if payload:
+                data = json.dumps(payload)  # to json
+                self.last_response = requests.post(url, data=data, headers=self.headers, params=params, timeout=timeout)
+            else:
+                self.last_response = requests.get(url, headers=self.headers, params=params, timeout=timeout)
+
+            code, res = self.last_response.status_code, self.last_response.text
+
         except Exception as e:
-            raise Exception(MSG_REQUEST_ERR.format(e))
+            raise Exception(MSG_REQUEST_ERR.format(code, e))
+
+        if code != 200:
+            msg = json.loads(res).get('payload').get('message')
+            raise Exception(MSG_REQUEST_ERR.format(code, msg))
 
         return res
 
@@ -154,13 +155,9 @@ class Base(object):
 
         url = self.api_url + "/user/accounts"
 
-        code, res = self._send_request(url)
+        res = self._send_request(url)
 
-        if code == 200:
-            return json.loads(res).get('payload').get('accounts')
-        else:
-            msg = json.loads(res).get('payload').get('message')
-            raise Exception(MSG_CLIENT_ERR.format(code, msg))
+        return json.loads(res).get('payload').get('accounts')
 
 
     def _add_to_db(self, key, val=None):
@@ -202,16 +199,12 @@ class Market(Base):
 
         """ Get all stocks
             Input:
-                instrument:
+                market: str,
                     'stocks': Output: list of stocks for all currencies,
                     'etfs': Output: list of etfs for all currencies,
                     'bonds': Output: list of bonds for all currencies
             Output:
-                res: list = [{}]
-            How to converddt output(res.text) to dict:
-                res['payload']['total'],
-                res['payload']['instruments'],
-                res['status']) """
+                res: list = [{}] """
 
         if not market:
             market = self.markets[0]
@@ -219,15 +212,12 @@ class Market(Base):
         if market in self.markets:
             url = self.api_url + "/market/" + market
         else:
-            raise Exception(MSG_MARKET_ERR.format(market, MSG_MARKET_LIST.format(self.markets)))
+            raise Exception(MSG_MARKET_ERR.format(
+                MSG_MARKET_LIST.format(market, self.markets)))
 
-        code, res = self._send_request(url)
-        #return json.loads(res)['payload']['instruments'] if status == 200 else json.loads(res)
-        if code == 200:
-            return json.loads(res).get('payload').get('instruments')
-        else:
-            msg = json.loads(res).get('payload').get('message')
-            raise Exception(MSG_MARKET_ERR.format(code, msg))
+        res = self._send_request(url)
+
+        return json.loads(res).get('payload').get('instruments')
 
 
     def get_instruments_by_tickers(self, tickers: tuple, all_instruments: list) -> list:
@@ -292,14 +282,9 @@ class Market(Base):
         for instrument in instruments:
             params.update({"figi": instrument['figi']})
             #params.update({"from": _from, "to": to, "interval": interval})
-            code, res = self._send_request(url, params=params)
+            res = self._send_request(url, params=params)
 
-            if code == 200:
-                instrument['candles'] = json.loads(res).get('payload').get('candles')
-            else:
-                msg = json.loads(res).get('payload').get('message')
-                print(MSG_MARKET_ERR.format(code, msg))
-                instrument['candles'] = None
+            instrument['candles'] = json.loads(res).get('payload').get('candles')
 
         return instruments
 
