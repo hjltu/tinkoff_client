@@ -35,17 +35,26 @@ from config import TOKEN, ACCOUNT_ID, MARKET, TICKERS, Style
 
 # enable/disable Traceback
 sys.tracebacklimit = 0
+MAX_ATTEMPT = 3
 
 def handle_error(func):
-    def inner(*args, **kwargs):
-        res = None
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            print(e)
-    return inner
+    def wrapper(*args, **kwargs):
+        attempt = 0
+        print('Send request, attempt: ', end='', flush=True)
+        while attempt < MAX_ATTEMPT:
+            attempt += 1
+            print(f'{attempt} ', end='', flush=True)
+            res = func(*args, **kwargs)
+            if isinstance(res, dict) or isinstance(res, list):
+                break
+        return res
+    return wrapper
 
 @handle_error
+def exec_function(func):
+    return func
+
+
 def main():
     print('Initialize client...')
     # First time run, will save token in the db
@@ -61,22 +70,19 @@ def main():
     print("get account_id:", client._get_from_db("account_id"))
 
     print('Get list of user accounts... ', end='', flush=True)
-    accounts = client.get_user_accounts()
-    print('done\n', accounts)
-    for acc in accounts:
-        print('done\nAccount ID:', acc.get('brokerAccountId'))
+    accounts = exec_function(client.get_user_accounts())
+    print('result:', accounts)
+    if isinstance(accounts, list):
+        for acc in accounts:
+            print('done\nAccount ID:', acc.get('brokerAccountId'))
     print('* debug:', client.last_response.url, '\n')
 
     print('Get stocks... ', end='', flush=True)
-    stocks = client.get_market('test')
-    if not isinstance(stocks, list):
-        print(stocks)
-    stocks = client.get_market()
-    if not isinstance(stocks, list):
+    stocks = exec_function(client.get_market('stocks'))
+    if isinstance(stocks, list):
+        print(stocks[0])
+    else:
         return print(stocks)
-    print('done', type(stocks), dir(stocks))
-    print(stocks[0])
-    print('* debug:', client.last_response.url, '\n')
 
     print('Get instruments... ', end='', flush=True)
     stocks = client.get_instruments_by_tickers(TICKERS, stocks)
