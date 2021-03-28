@@ -144,7 +144,7 @@ class Orders(Operations):
                 instrument['orders'] = []
                 for order in orders_list:
                     if instrument.get('figi') == order.get('figi'):
-                        instrument['orders'] = order
+                        instrument['orders'].append(order)
 
             return instruments
         return orders_list
@@ -200,7 +200,7 @@ class Orders(Operations):
         if account_id:
             params.update({"brokerAccountId": account_id})
 
-        res = self._send_request(url, params=params)
+        res = self._send_request(url, params=params, payload=params)
 
         return res.get('payload') if isinstance(res, dict) else res
 

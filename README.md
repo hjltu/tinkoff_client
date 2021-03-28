@@ -18,3 +18,6 @@
 
 * Run:
 <br>python test.py
+<br>or run in docker:
+<br>docker  build -f Dockerfile -t tbot .
+<br>docker run -ti --rm tbot YOUR_TOKEN
