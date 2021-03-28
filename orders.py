@@ -96,6 +96,20 @@ class Operations(Market):
         return res.get('payload').get('positions') if isinstance(res, dict) else res
 
 
+    def get_currencies(self, account_id: str = None):
+
+        """ Get client's portfolio/currencies,
+        Output: list of dict of the currency assets
+            or error message string """
+
+        url = self.api_url + "/portfolio/currencies"
+        params = {"brokerAccountId": account_id} if account_id else None
+
+        res = self._send_request(url, params=params)
+
+        return res.get('payload').get('currencies') if isinstance(res, dict) else res
+
+
 class Orders(Operations):
 
     def __init__(self,

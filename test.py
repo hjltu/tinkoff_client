@@ -24,6 +24,7 @@
 """
 test.py
 Usage:
+    ./test.py api_token
     ./test.py
 """
 
@@ -55,11 +56,11 @@ def exec_function(func):
     return func
 
 
-def main():
+def main(token=TOKEN):
     print('Initialize client...')
     # First time run, will save token in the db
-    if TOKEN:
-        client = Orders(db="test.db", token=TOKEN, account_id=ACCOUNT_ID)
+    if token:
+        client = Orders(db="test.db", token=token, account_id=ACCOUNT_ID)
     # if token is already saved in the db
     else:
         client = Orders()
@@ -75,6 +76,14 @@ def main():
     if isinstance(accounts, list):
         for acc in accounts:
             print('done\nAccount ID:', acc.get('brokerAccountId'))
+    print('* debug:', client.last_response.url, '\n')
+
+    print('Get list of currency assets... ', end='', flush=True)
+    currencies = exec_function(client.get_currencies())
+    print('done:', currencies)
+    if isinstance(currencies, list):
+        for curr in currencies:
+            print(f'currency: {curr}')
     print('* debug:', client.last_response.url, '\n')
 
     print('Get stocks... ', end='', flush=True)
@@ -120,5 +129,7 @@ def main():
 
 
 if __name__=="__main__":
-    #arg=sys.argv[1:]
-    main()
+    if len(sys.argv) == 2:
+        main(sys.argv[1])
+    else:
+        main()
