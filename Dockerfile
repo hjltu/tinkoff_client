@@ -1,11 +1,15 @@
-# docker  build -f Dockerfile -t tbot .
+# docker  build --force-rm -f Dockerfile -t tbot .
 # docker run -ti --rm tbot
 
 
 FROM python:3.8-alpine
+LABEL maintainer="hjltu@ya.ru"
+
 RUN apk update && apk add py3-setuptools git && pip3 install requests
 
-RUN addgroup -S app && adduser -S -G app app
+ENV USER=tbot
+RUN addgroup -S $USER && adduser -S -G $USER $USER
+USER $USER
 
 WORKDIR /home/$USER
 RUN git clone --single-branch -b main https://github.com/hjltu/tinkoff_client
